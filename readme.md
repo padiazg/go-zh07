@@ -1,6 +1,6 @@
-# Winsen ZH06 and ZH07 Laser dust sensor
+# Driver for Winsen ZH06 and ZH07 Laser dust sensor
 
-ZH06 [pdf reference](docs/ZH06.pdf), ZH07 [pdf reference](docs/ZH07.pdf) are laser dust sensors module to check air quality.
+ [ZH06](docs/ZH06.pdf) and [ZH07](docs/ZH07.pdf) are laser dust sensors module to check air quality.
 
 # Communication modes
 There are two communication modes supported
@@ -10,16 +10,21 @@ There are two communication modes supported
 The mode is selected when requesting an instance of the sensor driver.
 ```go
 // request an instance that will use Q&A communication mode
-z0, _ := zh07.NewZH07(zh07.commandSetQAMode, rw)
+z0 := zh07.NewZH07q(&zh07.Config{RW: rw})
 // request an instance that will use Initiative upload communication mode
-z1, _ := zh07.NewZH07(zh07.commandSetInitiativeUploadMode, rw)
+z0, := zh07.NewZH07i(&zh07.Config{RW: rw})
+
+// Init must be called to set the mode
+if e := z.Init(); e != nil {
+	fmt.Printf("%+v\n", e)
+}
 ```
 There is no difference from the user side on using either mode
 
 # Sensor models & documentation
 I tested the driver using a ZH07 sensor. 
 
-There is no documentation in English about this model, and I could only find a [pdf](doc/ZH07.pdf) in Chinese. This document states that the communication protocol used by this sensor is the same used by the ZH06 and forwards us to its [documentation](docs/ZH07.pdf) for further development.
+There's is only Chinese documentation about the [ZH06](docs/ZH06.pdf). The ZH07 is fully compatible with the previous version, and I managed to write all the driver based on it, and it works fine.
 
 In theory, this driver should work with a ZH06 sensor, but I don't have any around to play with it.
 
@@ -94,7 +99,7 @@ func main() {
 ```
 
 # Contact
-Please use [Github issue tracker](https://github.com/padiazg/go-zh07/issues) for filing bugs or feature requests.
+Please use [Github issue tracker](https://github.com/padiazg/go-zh07/issues) for filling bugs or feature requests.
 
 # License
 Go-zh07 is licensed under MIT License.

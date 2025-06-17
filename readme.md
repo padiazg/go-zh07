@@ -10,9 +10,9 @@ There are two communication modes supported
 The mode is selected when requesting an instance of the sensor driver.
 ```go
 // request an instance that will use Q&A communication mode
-z0, _ := zh07.NewZH07(zh07.ModeQA, rw)
+z0, _ := zh07.NewZH07(zh07.commandSetQAMode, rw)
 // request an instance that will use Initiative upload communication mode
-z1, _ := zh07.NewZH07(zh07.ModeInitiative, rw)
+z1, _ := zh07.NewZH07(zh07.commandSetInitiativeUploadMode, rw)
 ```
 There is no difference from the user side on using either mode
 
@@ -46,6 +46,8 @@ In theory, this driver should work with a ZH06 sensor, but I don't have any arou
 Some level shifting method is required
 ![](docs/typical-circuit-3.3v-to-5v.png)
 
+**Connect to a Raspberry Pi**
+
 # Golang usage
 ```go
 package main
@@ -76,8 +78,8 @@ func main() {
     rw := bufio.NewReadWriter(bufio.NewReader(s), bufio.NewWriter(s))
 
     // create a sensor instance
-    z, e := zh07.NewZH07(zh07.ModeQA, rw)
-    if e != nil {
+    z := zh07.NewZH07q(rw)
+    if e := z.Init(); e != nil {
         fmt.Fprintf(os.Stderr, "%s\n", e)
         log.Fatal(e)
     }
@@ -87,7 +89,7 @@ func main() {
         fmt.Printf("Reading from tty: %v\n", e)
         os.Exit(1)
     }
-    fmt.Printf("Reading:\nPM 1.0: %d\nPM 2.5: %d\nPM 10 : %d\n\n", r.MassPM1, r.MassPM25, r.MassPM10)
+    fmt.Printf("Reading:\nPM 1.0: %d\nPM 2.5: %d\nPM 10 : %d\n\n", r.PM1, r.PM25, r.PM10)
 }
 ```
 

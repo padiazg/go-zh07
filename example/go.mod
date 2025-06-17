@@ -1,6 +1,6 @@
 module go-zh07-example
 
-go 1.16
+go 1.23
 
 replace github.com/padiazg/go-zh07 => ../
 

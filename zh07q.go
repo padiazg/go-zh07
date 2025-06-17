@@ -2,45 +2,73 @@ package zh07
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
-	"log"
+	"time"
 )
 
+var _ SensorInterface = (*ZH07q)(nil)
+
 type ZH07q struct {
-	data []byte
+	data         []byte
+	rw           *bufio.ReadWriter
+	writeAndRead func(rw *bufio.ReadWriter, c []byte) ([]byte, error)
+	write        func(rw *bufio.ReadWriter, c []byte) error
+}
+
+func NewZH07q(config *Config) *ZH07q {
+	if config == nil {
+		config = &Config{}
+	}
+
+	if config.RW == nil {
+		config.RW = bufio.NewReadWriter(bufio.NewReader(bytes.NewReader([]byte{})), nil)
+	}
+
+	return &ZH07q{
+		rw:           config.RW,
+		writeAndRead: writeAndRead,
+		write:        write,
+	}
+}
+
+func (z *ZH07q) Init() error {
+	if err := z.write(z.rw, commandSetQAMode); err != nil {
+		return err
+	}
+	time.Sleep(sleepAfterWrite) // wait command to be executed
+
+	return nil
 }
 
 // CalculateChecksum calculates the checksum from the payload
 func (z *ZH07q) CalculateChecksum() int {
-	return CalculateChecksum(&z.data)
-} // ZH07q.CalculateChecksum ...
-
-func (z *ZH07q) getChecksum() int {
-	return int(z.data[8])
-} // ZH07q.getChecksum ...
+	return calculateChecksum(&z.data)
+}
 
 func (z *ZH07q) IsReadingValid() bool {
 	return z.CalculateChecksum() == z.getChecksum()
-} // ZH07q.IsReadingValid ...
+}
 
-func (z *ZH07q) Read(rw *bufio.ReadWriter) (*Reading, error) {
-	command := []byte{0xFF, 0x01, 0x86, 0x00, 0x00, 0x00, 0x00, 0x00, 0x79}
+func (z *ZH07q) Read() (*Reading, error) {
 	var e error
-	if z.data, e = SendCommand(rw, &command); e != nil {
+	if z.data, e = z.writeAndRead(z.rw, commandQuery); e != nil {
 		return nil, e
 	}
 
 	if !z.IsReadingValid() {
-		log.Printf("Read | z.data => %v\n", ToHex(z.data))
-		log.Printf("Read | Checksum: %X Calculated:%X \n", z.getChecksum(), z.CalculateChecksum())
-		return nil, fmt.Errorf("checksum mistmatch")
+		return nil, fmt.Errorf("checksum mistmatch=%X, calculated %X", z.getChecksum(), z.CalculateChecksum())
 	}
 
 	r := Reading{
-		MassPM25: ByteToInt(z.data[2:4]),
-		MassPM10: ByteToInt(z.data[4:6]),
-		MassPM1:  ByteToInt(z.data[6:8]),
+		PM25: byteToInt(z.data[2:4]),
+		PM10: byteToInt(z.data[4:6]),
+		PM1:  byteToInt(z.data[6:8]),
 	}
 
 	return &r, nil
-} // ZH07q.Read ...
+}
+
+func (z *ZH07q) getChecksum() int {
+	return int(z.data[8])
+}

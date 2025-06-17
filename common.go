@@ -1,19 +1,55 @@
+// Package zh07 provides a driver for Winsen ZH06 and ZH07 laser dust sensors.
+//
+// The ZH06 and ZH07 are laser dust sensor modules used to check air quality by
+// measuring particulate matter concentrations (PM1.0, PM2.5, and PM10).
+//
+// This package supports two communication modes:
+//   - Initiative upload mode: The sensor continuously broadcasts readings
+//   - Question and answer mode: Readings are requested on demand
+//
+// Example usage:
+//
+//	// Create a sensor instance for Q&A mode
+//	sensor := zh07.NewZH07q(&zh07.Config{RW: rw})
+//	if err := sensor.Init(); err != nil {
+//		log.Fatal(err)
+//	}
+//
+//	// Read sensor data
+//	reading, err := sensor.Read()
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//	fmt.Printf("PM1.0: %d, PM2.5: %d, PM10: %d\n", reading.PM1, reading.PM25, reading.PM10)
 package zh07
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"time"
 )
 
+var (
+	// ErrChecksumMismatch is returned when the calculated checksum doesn't match the received checksum
+	ErrChecksumMismatch = errors.New("checksum mismatch")
+	// ErrInvalidFrame is returned when the received data frame is invalid
+	ErrInvalidFrame = errors.New("invalid data frame")
+	// ErrSensorCommunication is returned when communication with the sensor fails
+	ErrSensorCommunication = errors.New("sensor communication failed")
+)
+
+// Config holds configuration options for sensor instances.
 type Config struct {
+	// RW is the ReadWriter interface for communicating with the sensor
 	RW *bufio.ReadWriter
 }
 
+// Reading represents a sensor reading with particulate matter concentrations.
 type Reading struct {
-	PM1  int // Mass Concentration PM1.0   [g/m3]
-	PM25 int // Mass Concentration PM2.5   [g/m3]
-	PM10 int // Mass Concentration PM10    [g/m3]
+	PM1  int // Mass Concentration PM1.0 [μg/m³]
+	PM25 int // Mass Concentration PM2.5 [μg/m³]
+	PM10 int // Mass Concentration PM10 [μg/m³]
 }
 
 var (
@@ -80,6 +116,7 @@ var (
 	sleepAfterWrite = 250 * time.Millisecond
 )
 
+// calculateChecksum computes the checksum for sensor data validation.
 func calculateChecksum(d *[]byte) int {
 	var tempq byte
 	for _, v := range (*d)[1 : len(*d)-1] {
@@ -88,12 +125,12 @@ func calculateChecksum(d *[]byte) int {
 	return int((^tempq) + 1)
 }
 
-// byteToInt converts 2 bytes to Int
+// byteToInt converts 2 bytes to int in big-endian format.
 func byteToInt(data []byte) int {
 	return int(data[1]) + (int(data[0]) << 8)
 }
 
-// toHex formats hex values to string
+// toHex formats byte slice as hexadecimal string for debugging.
 func toHex(data []byte) string {
 	var result = ""
 
@@ -104,7 +141,7 @@ func toHex(data []byte) string {
 	return result
 }
 
-// writeAndRead writes a command to the sensor and returns the response
+// writeAndRead writes a command to the sensor and returns the response.
 func writeAndRead(rw *bufio.ReadWriter, c []byte) ([]byte, error) {
 	write(rw, c)
 	time.Sleep(sleepAfterWrite) // wait for the response
@@ -117,7 +154,7 @@ func writeAndRead(rw *bufio.ReadWriter, c []byte) ([]byte, error) {
 	return r, nil
 }
 
-// write writes to the sensor
+// write sends a command to the sensor.
 func write(rw *bufio.ReadWriter, c []byte) error {
 	if _, e := rw.Write(c); e != nil { // send command
 		return e

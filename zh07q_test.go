@@ -124,7 +124,7 @@ func TestZH07q_Read(t *testing.T) {
 				),
 			},
 			{
-				name:     "fail-checksum-mistmatch",
+				name:     "fail-checksum-mismatch",
 				response: sampleQABadChecksum,
 				checks: check(
 					hasError(true),

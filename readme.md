@@ -5,14 +5,14 @@
 # Communication modes
 There are two communication modes supported
 * **Initiative upload**: the sensor broadcast readings on the tty port on a regular basis
-* **Queation and answer**: we send a command command to request a reading
+* **Question and answer**: we send a command command to request a reading
 
 The mode is selected when requesting an instance of the sensor driver.
 ```go
 // request an instance that will use Q&A communication mode
 z0 := zh07.NewZH07q(&zh07.Config{RW: rw})
 // request an instance that will use Initiative upload communication mode
-z0, := zh07.NewZH07i(&zh07.Config{RW: rw})
+z0 := zh07.NewZH07i(&zh07.Config{RW: rw})
 
 // Init must be called to set the mode
 if e := z.Init(); e != nil {
@@ -24,7 +24,7 @@ There is no difference from the user side on using either mode
 # Sensor models & documentation
 I tested the driver using a ZH07 sensor. 
 
-There's is only Chinese documentation about the [ZH06](docs/ZH06.pdf). The ZH07 is fully compatible with the previous version, and I managed to write all the driver based on it, and it works fine.
+There's is only documentation about the [ZH06](docs/ZH06.pdf), but the [ZH07](docs/ZH07.pdf) is fully compatible with it. The project was developed based on the ZH06 documentation and tested using a ZH07.
 
 In theory, this driver should work with a ZH06 sensor, but I don't have any around to play with it.
 
@@ -97,6 +97,8 @@ func main() {
     fmt.Printf("Reading:\nPM 1.0: %d\nPM 2.5: %d\nPM 10 : %d\n\n", r.PM1, r.PM25, r.PM10)
 }
 ```
+
+A more detailed and complex example can be found at [go-zh07-example](https://github.com/padiazg/go-zh07-example)
 
 # Contact
 Please use [Github issue tracker](https://github.com/padiazg/go-zh07/issues) for filling bugs or feature requests.

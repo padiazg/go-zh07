@@ -10,13 +10,15 @@ import (
 
 var _ SensorInterface = (*ZH07i)(nil)
 
-// ZH07i data read in initiative upload mode
+// ZH07i implements the SensorInterface for initiative upload mode.
+// In this mode, the sensor continuously broadcasts readings.
 type ZH07i struct {
 	data  []byte
 	rw    *bufio.ReadWriter
 	write func(rw *bufio.ReadWriter, c []byte) error
 }
 
+// NewZH07i creates a new ZH07i sensor instance for initiative upload mode.
 func NewZH07i(config *Config) *ZH07i {
 	if config == nil {
 		config = &Config{}
@@ -33,6 +35,7 @@ func NewZH07i(config *Config) *ZH07i {
 	}
 }
 
+// Init initializes the sensor for initiative upload mode.
 func (z *ZH07i) Init() error {
 	if err := z.write(z.rw, commandSetInitiativeUploadMode); err != nil {
 		return err
@@ -42,9 +45,9 @@ func (z *ZH07i) Init() error {
 	return nil
 }
 
-// CalculateChecksum calculates the checksum from the payload
-// calculated adding all the first 30 bytes of the data received,
-// the last 2 bytes are the checkcum
+// CalculateChecksum calculates the checksum from the payload.
+// The checksum is calculated by adding all the first 30 bytes of the data received;
+// the last 2 bytes are the checksum.
 func (z *ZH07i) CalculateChecksum() int {
 	var r0 int
 	for _, v := range z.data[:30] {
@@ -53,12 +56,12 @@ func (z *ZH07i) CalculateChecksum() int {
 	return r0
 }
 
-// IsReadingValid check calculated checksu agains payload checksum
+// IsReadingValid checks if the calculated checksum matches the payload checksum.
 func (z *ZH07i) IsReadingValid() bool {
 	return z.CalculateChecksum() == byteToInt(z.data[30:32])
 }
 
-// Read reads from the sensor
+// Read reads particulate matter data from the sensor in initiative upload mode.
 func (z *ZH07i) Read() (*Reading, error) {
 	var (
 		b0   = make([]byte, 1)
@@ -69,7 +72,7 @@ func (z *ZH07i) Read() (*Reading, error) {
 
 	// read byte by byte until we find the 1st start character (0x42)
 	if _, err = z.rw.Read(b0); err != nil {
-		return nil, fmt.Errorf("Reading from sensor: %+v", err)
+		return nil, fmt.Errorf("%w: %v", ErrSensorCommunication, err)
 	}
 	if b0[0] != 0x42 {
 		return nil, nil
@@ -79,7 +82,7 @@ func (z *ZH07i) Read() (*Reading, error) {
 	//   frame length high bits
 	//   frame length low bits
 	if _, err = z.rw.Read(b1); err != nil {
-		return nil, fmt.Errorf("Reading from sensor: %+v", err)
+		return nil, fmt.Errorf("%w: %v", ErrSensorCommunication, err)
 	}
 	if b1[0] != 0x4d {
 		return nil, nil
@@ -92,7 +95,7 @@ func (z *ZH07i) Read() (*Reading, error) {
 
 	// if everything matches so far, we read the remaining data (28 bytes)
 	if _, err = io.ReadFull(z.rw, data); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrSensorCommunication, err)
 	}
 
 	// let's concatenate all the bytes read into a single slice
@@ -107,7 +110,7 @@ func (z *ZH07i) Read() (*Reading, error) {
 	return &r, nil
 }
 
-// GetChecksum recovers the checksun received in the payload
+// getChecksum recovers the checksum received in the payload.
 func (z *ZH07i) getChecksum() int {
 	return byteToInt(z.data[30:])
 }

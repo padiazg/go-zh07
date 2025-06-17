@@ -89,29 +89,29 @@ var (
 		0x79,
 	}
 
-	commandDormantEnter = []byte{ // enter dormant mode
-		0xFF,
-		0x01,
-		0xA7,
-		0x01,
-		0x00,
-		0x00,
-		0x00,
-		0x00,
-		0x57,
-	}
+	// commandDormantEnter = []byte{ // enter dormant mode
+	// 	0xFF,
+	// 	0x01,
+	// 	0xA7,
+	// 	0x01,
+	// 	0x00,
+	// 	0x00,
+	// 	0x00,
+	// 	0x00,
+	// 	0x57,
+	// }
 
-	commandDormantQuit = []byte{ // quit dormant mode
-		0xFF,
-		0x01,
-		0xA7,
-		0x00,
-		0x00,
-		0x00,
-		0x00,
-		0x00,
-		0x58,
-	}
+	// commandDormantQuit = []byte{ // quit dormant mode
+	// 	0xFF,
+	// 	0x01,
+	// 	0xA7,
+	// 	0x00,
+	// 	0x00,
+	// 	0x00,
+	// 	0x00,
+	// 	0x00,
+	// 	0x58,
+	// }
 
 	sleepAfterWrite = 250 * time.Millisecond
 )
@@ -143,12 +143,14 @@ func toHex(data []byte) string {
 
 // writeAndRead writes a command to the sensor and returns the response.
 func writeAndRead(rw *bufio.ReadWriter, c []byte) ([]byte, error) {
-	write(rw, c)
+	if err := write(rw, c); err != nil {
+		return nil, err
+	}
 	time.Sleep(sleepAfterWrite) // wait for the response
 
-	r := make([]byte, 9)              // buffer to receive response
-	if _, e := rw.Read(r); e != nil { // read response from tty
-		return nil, e
+	r := make([]byte, 9)                  // buffer to receive response
+	if _, err := rw.Read(r); err != nil { // read response from tty
+		return nil, err
 	}
 
 	return r, nil
@@ -156,8 +158,8 @@ func writeAndRead(rw *bufio.ReadWriter, c []byte) ([]byte, error) {
 
 // write sends a command to the sensor.
 func write(rw *bufio.ReadWriter, c []byte) error {
-	if _, e := rw.Write(c); e != nil { // send command
-		return e
+	if _, err := rw.Write(c); err != nil { // send command
+		return err
 	}
 
 	return rw.Writer.Flush() // flush write buffer

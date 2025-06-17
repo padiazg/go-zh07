@@ -1,25 +1,30 @@
-# Winsen ZH06 and ZH07 Laser dust sensor
+# Driver for Winsen ZH06 and ZH07 Laser dust sensor
 
-ZH06 [pdf reference](docs/ZH06.pdf), ZH07 [pdf reference](docs/ZH07.pdf) are laser dust sensors module to check air quality.
+ [ZH06](docs/ZH06.pdf) and [ZH07](docs/ZH07.pdf) are laser dust sensors module to check air quality.
 
 # Communication modes
 There are two communication modes supported
 * **Initiative upload**: the sensor broadcast readings on the tty port on a regular basis
-* **Queation and answer**: we send a command command to request a reading
+* **Question and answer**: we send a command command to request a reading
 
 The mode is selected when requesting an instance of the sensor driver.
 ```go
 // request an instance that will use Q&A communication mode
-z0, _ := zh07.NewZH07(zh07.ModeQA, rw)
+z0 := zh07.NewZH07q(&zh07.Config{RW: rw})
 // request an instance that will use Initiative upload communication mode
-z1, _ := zh07.NewZH07(zh07.ModeInitiative, rw)
+z0 := zh07.NewZH07i(&zh07.Config{RW: rw})
+
+// Init must be called to set the mode
+if e := z.Init(); e != nil {
+	fmt.Printf("%+v\n", e)
+}
 ```
 There is no difference from the user side on using either mode
 
 # Sensor models & documentation
 I tested the driver using a ZH07 sensor. 
 
-There is no documentation in English about this model, and I could only find a [pdf](doc/ZH07.pdf) in Chinese. This document states that the communication protocol used by this sensor is the same used by the ZH06 and forwards us to its [documentation](docs/ZH07.pdf) for further development.
+There's is only documentation about the [ZH06](docs/ZH06.pdf), but the [ZH07](docs/ZH07.pdf) is fully compatible with it. The project was developed based on the ZH06 documentation and tested using a ZH07.
 
 In theory, this driver should work with a ZH06 sensor, but I don't have any around to play with it.
 
@@ -45,6 +50,8 @@ In theory, this driver should work with a ZH06 sensor, but I don't have any arou
 **Typical connection to a device that works with 5v**
 Some level shifting method is required
 ![](docs/typical-circuit-3.3v-to-5v.png)
+
+**Connect to a Raspberry Pi**
 
 # Golang usage
 ```go
@@ -76,8 +83,8 @@ func main() {
     rw := bufio.NewReadWriter(bufio.NewReader(s), bufio.NewWriter(s))
 
     // create a sensor instance
-    z, e := zh07.NewZH07(zh07.ModeQA, rw)
-    if e != nil {
+    z := zh07.NewZH07q(rw)
+    if e := z.Init(); e != nil {
         fmt.Fprintf(os.Stderr, "%s\n", e)
         log.Fatal(e)
     }
@@ -87,12 +94,14 @@ func main() {
         fmt.Printf("Reading from tty: %v\n", e)
         os.Exit(1)
     }
-    fmt.Printf("Reading:\nPM 1.0: %d\nPM 2.5: %d\nPM 10 : %d\n\n", r.MassPM1, r.MassPM25, r.MassPM10)
+    fmt.Printf("Reading:\nPM 1.0: %d\nPM 2.5: %d\nPM 10 : %d\n\n", r.PM1, r.PM25, r.PM10)
 }
 ```
 
+A more detailed and complex example can be found at [go-zh07-example](https://github.com/padiazg/go-zh07-example)
+
 # Contact
-Please use [Github issue tracker](https://github.com/padiazg/go-zh07/issues) for filing bugs or feature requests.
+Please use [Github issue tracker](https://github.com/padiazg/go-zh07/issues) for filling bugs or feature requests.
 
 # License
 Go-zh07 is licensed under MIT License.
